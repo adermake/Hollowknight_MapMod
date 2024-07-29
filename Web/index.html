@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<head>
+	<meta charset="UTF-8">
+	<title>Hollow Knight Randomized Map Visualizer</title>
+	<script type="module" src="MapHandler.js"></script>
+	<script type="module" src="App.js"></script>
+	<link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+	hi
+</body>
+
+<style>
+    html, body {
+        overflow: hidden;
+        draggable ="false"
+    }
+</style>
+<script type="module">
+	import MapHandler from './MapHandler.js';
+	import App from './App.js';
+
+	// Use the imported classes
+	window.onload = function () {
+		const map = new MapHandler();
+		const app = new App(map);
+		app.start();
+	}
+</script>
+</html>

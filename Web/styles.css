@@ -1,0 +1,9 @@
+.room {
+    cursor: grab; /* Change cursor to indicate dragging */
+    position: absolute; /* Allows for free movement */
+    z-index: 1000; /* Ensure draggable elements are above other content */
+}
+
+    .room:active {
+        cursor: grabbing; /* Change cursor when dragging */
+    }
