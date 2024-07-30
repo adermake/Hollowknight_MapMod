@@ -12,6 +12,9 @@ export default class MapHandler {
 
     drag = (evt) => {
 
+        if (this.getRoomDataFromPoint(evt.clientX, evt.clientY) !== null) {
+            return;
+        }
         const el = this.rootDiv;
         el.style.touchAction = "none";
         const move = (evt) => {
@@ -26,7 +29,7 @@ export default class MapHandler {
 
         addEventListener("pointermove", move);
         addEventListener("pointerup", up);
-        evt.preventDefault();
+        //evt.preventDefault();
 
     };
 
@@ -51,6 +54,7 @@ export default class MapHandler {
 
     };
 
+    
 
     getRelativeBoundingClientRect(element, parent) {
         const elementRect = element.getBoundingClientRect();
@@ -78,7 +82,7 @@ export default class MapHandler {
         this.rootDiv.style.top = "0px";
         this.rootDiv.style.width = "100%";
         this.rootDiv.style.height = "100%";
-        this.rootDiv.style.background = "red";
+        this.rootDiv.style.background = "blue";
         this.rootDiv.style.color = "blue";
         this.rootDiv.style.transformOrigin = "top left";
         this.rootDiv.style.pointerEvents = "auto";
@@ -88,7 +92,7 @@ export default class MapHandler {
         eventDiv.style.top = "0px";
         eventDiv.style.width = "100%";
         eventDiv.style.height = "100%";
-        eventDiv.style.zIndex = 5;
+        eventDiv.style.zIndex = 500;
         eventDiv.addEventListener("pointerdown", this.drag);
         document.body.appendChild(this.rootDiv);
         document.body.appendChild(eventDiv);
@@ -98,40 +102,7 @@ export default class MapHandler {
         document.body.addEventListener("mouseenter", this.updateMouse, false);
         document.body.addEventListener("mouseleave", this.updateMouse, false);
 
-        document.body.addEventListener('click', (event) => {
-            // Calculate the click position relative to the parent div
-            const rect = this.rootDiv.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            console.log('clicked body');
-            // Adjust the click position based on the scaling factor
-            const scaledX = (x / this.scale);
-            const scaledY = (y / this.scale);
-
-            // Find the target element based on the scaled coordinates
-            //const targetElement = document.elementFromPoint(scaledX, scaledY);
-            const test = document.createElement('div');
-            test.style.width = "10px";
-            test.style.height = "10px";
-            test.style.position = 'absolute';
-            test.style.left = scaledX + 'px';
-            test.style.top = scaledY + 'px';
-            test.style.backgroundColor = 'yellow';
-            this.rootDiv.appendChild(test);
-
-            for (let val of this.roomDivMap.values()) {
-                const left = this.getRelativeBoundingClientRect(val, this.rootDiv).left / this.scale;
-                const top = this.getRelativeBoundingClientRect(val, this.rootDiv).top / this.scale;
-                const width = this.getRelativeBoundingClientRect(val, this.rootDiv).width / this.scale;
-                const height = this.getRelativeBoundingClientRect(val, this.rootDiv).height / this.scale;
-                if (scaledX > left && scaledX < left + width && scaledY > top && scaledY < top + height) {
-                    this.clickRoom(val);
-                }
-            }
-
-
-        });
-
+        this.setupRoomDrag(eventDiv);
     }
 
     clickRoom(room) {
@@ -186,34 +157,80 @@ export default class MapHandler {
         this.roomDivMap.set(trans.toRoom, newDiv);
     }
 
+    setupRoomDrag(eventDiv) {
 
-
-    makeDraggable(element) {
         let offsetX, offsetY, isDragging = false;
+        let dragElement = null;
+        document.addEventListener('mousedown', (event) => {
 
-        element.addEventListener('click', (e) => {
-            console.log('Child clicked!');
-        });
-        element.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            offsetX = e.clientX - element.getBoundingClientRect().left;
-            offsetY = e.clientY - element.getBoundingClientRect().top;
-            element.style.cursor = 'grabbing';
-        });
+            let data = this.getRoomDataFromPoint(event.clientX, event.clientY);
+            if (data !== null) {
+                dragElement = data.room;
+                offsetX = event.clientX - data.left;
+                offsetY = event.clientY - data.top;
+                isDragging = true;
 
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                const x = e.clientX - offsetX;
-                const y = e.clientY - offsetY;
-                element.style.left = `${x}px`;
-                element.style.top = `${y}px`;
+
             }
+            event.preventDefault();
         });
+
+        document.addEventListener('mousemove', (event) => {
+            if (isDragging) {
+                const x = event.clientX - offsetX;
+                const y = event.clientY - offsetY;
+                dragElement.style.left = `${x}px`;
+                dragElement.style.top = `${y}px`;
+            }
+            event.preventDefault();
+
+        });
+
 
         document.addEventListener('mouseup', () => {
             isDragging = false;
-            element.style.cursor = 'grab';
+
         });
+    }
+
+    getRoomDataFromPoint(pointx, pointy) {
+
+        const rect = this.rootDiv.getBoundingClientRect();
+        const x = pointx - rect.left;
+        const y = pointy - rect.top;
+        console.log('clicked body');
+        // Adjust the click position based on the scaling factor
+        const scaledX = (x / this.scale);
+        const scaledY = (y / this.scale);
+
+        // Find the target element based on the scaled coordinates
+        //const targetElement = document.elementFromPoint(scaledX, scaledY);
+        const test = document.createElement('div');
+        test.style.width = "10px";
+        test.style.height = "10px";
+        test.style.position = 'absolute';
+        test.style.left = scaledX + 'px';
+        test.style.top = scaledY + 'px';
+        test.style.backgroundColor = 'yellow';
+        this.rootDiv.appendChild(test);
+
+        for (let val of this.roomDivMap.values()) {
+            const left = this.getRelativeBoundingClientRect(val, this.rootDiv).left / this.scale;
+            const top = this.getRelativeBoundingClientRect(val, this.rootDiv).top / this.scale;
+            const width = this.getRelativeBoundingClientRect(val, this.rootDiv).width / this.scale;
+            const height = this.getRelativeBoundingClientRect(val, this.rootDiv).height / this.scale;
+            if (scaledX > left && scaledX < left + width && scaledY > top && scaledY < top + height) {
+                return {
+                    room: val,
+                    left: left,
+                    top: top,
+                    width: width,
+                    height: height
+                };
+               
+            }
+        }
+        return null;
     }
 
 
