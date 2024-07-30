@@ -2,7 +2,7 @@ export default class MapHandler {
 
     static Instance = null;
     roomDivMap = new Map();
-
+    transPathMap = new Map();
     mouseX = 0;
     mouseY = 0;
     offset = [0, 0];
@@ -54,7 +54,7 @@ export default class MapHandler {
 
     };
 
-    
+
 
     getRelativeBoundingClientRect(element, parent) {
         const elementRect = element.getBoundingClientRect();
@@ -82,7 +82,7 @@ export default class MapHandler {
         this.rootDiv.style.top = "0px";
         this.rootDiv.style.width = "100%";
         this.rootDiv.style.height = "100%";
-        this.rootDiv.style.background = "blue";
+        this.rootDiv.style.background = "ffffff00";
         this.rootDiv.style.color = "blue";
         this.rootDiv.style.transformOrigin = "top left";
         this.rootDiv.style.pointerEvents = "auto";
@@ -121,10 +121,16 @@ export default class MapHandler {
             let transition = parsedData[i];
 
             if (!this.roomExists(transition.toRoom)) {
-                this.createRoom(transition, this.x, this.y);
+                this.createRooms(transition, this.x, this.y);
                 this.x += 20;
                 this.y += 20;
             }
+        }
+
+        for (let i = 0; i < parsedData.length; i++) {
+            let transition = parsedData[i];
+
+            this.addConnection(transition);
         }
     }
 
@@ -137,24 +143,50 @@ export default class MapHandler {
         return false;
     }
 
-    createRoom(trans, x, y) {
-        const newDiv = document.createElement('div');
-        newDiv.style.position = 'absolute';
-        newDiv.id = trans.toRoom;
-        newDiv.className = 'room';
-        newDiv.innerText = trans.toRoom;
-        newDiv.style.backgroundColor = 'lightblue';
-        newDiv.style.padding = '10px';
-        newDiv.style.left = x + '%';
-        newDiv.style.top = y + '%';
-        newDiv.style.width = trans.toRoomWidth / 10 + '%';
-        newDiv.style.height = trans.toRoomHeight / 10 + '%';
-        newDiv.style.pointerEvents = 'auto';
-        this.rootDiv.appendChild(newDiv);
-        //this.makeDraggable(newDiv);
+    createRooms(trans, x, y) {
+        if (!this.roomDivMap.has(trans.toRoom)) {
 
 
-        this.roomDivMap.set(trans.toRoom, newDiv);
+            const newDiv = document.createElement('div');
+            newDiv.style.position = 'absolute';
+            newDiv.id = trans.toRoom;
+            newDiv.className = 'room';
+            newDiv.innerText = trans.toRoom;
+            newDiv.style.backgroundColor = 'lightblue';
+            newDiv.style.padding = '10px';
+            newDiv.style.left = x + '%';
+            newDiv.style.top = y + '%';
+            newDiv.style.width = trans.toRoomWidth / 10 + '%';
+            newDiv.style.height = trans.toRoomHeight / 10 + '%';
+            newDiv.style.pointerEvents = 'auto';
+            this.rootDiv.appendChild(newDiv);
+            //this.makeDraggable(newDiv);
+
+
+            this.roomDivMap.set(trans.toRoom, newDiv);
+        }
+
+        if (!this.roomDivMap.has(trans.fromRoom)) {
+
+
+            const newDiv = document.createElement('div');
+            newDiv.style.position = 'absolute';
+            newDiv.id = trans.fromRoom;
+            newDiv.className = 'room';
+            newDiv.innerText = trans.fromRoom;
+            newDiv.style.backgroundColor = 'lightblue';
+            newDiv.style.padding = '10px';
+            newDiv.style.left = x + '%';
+            newDiv.style.top = y + '%';
+            newDiv.style.width = trans.toRoomWidth / 10 + '%';
+            newDiv.style.height = trans.toRoomHeight / 10 + '%';
+            newDiv.style.pointerEvents = 'auto';
+            this.rootDiv.appendChild(newDiv);
+            //this.makeDraggable(newDiv);
+
+
+            this.roomDivMap.set(trans.fromRoom, newDiv);
+        }
     }
 
     setupRoomDrag(eventDiv) {
@@ -166,8 +198,15 @@ export default class MapHandler {
             let data = this.getRoomDataFromPoint(event.clientX, event.clientY);
             if (data !== null) {
                 dragElement = data.room;
-                offsetX = event.clientX - data.left;
-                offsetY = event.clientY - data.top;
+                const rect = this.rootDiv.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                console.log('clicked body');
+                // Adjust the click position based on the scaling factor
+                const scaledX = (x / this.scale);
+                const scaledY = (y / this.scale);
+                offsetX = rect.left + event.clientX - rect.left - data.left * this.scale;
+                offsetY = rect.top + event.clientY - rect.top - data.top * this.scale;
                 isDragging = true;
 
 
@@ -177,11 +216,12 @@ export default class MapHandler {
 
         document.addEventListener('mousemove', (event) => {
             if (isDragging) {
-                const x = event.clientX - offsetX;
-                const y = event.clientY - offsetY;
+                const x = (event.clientX - offsetX) / this.scale;
+                const y = (event.clientY - offsetY) / this.scale;
                 dragElement.style.left = `${x}px`;
                 dragElement.style.top = `${y}px`;
             }
+            MapHandler.Instance.updateAllConnections();
             event.preventDefault();
 
         });
@@ -205,14 +245,7 @@ export default class MapHandler {
 
         // Find the target element based on the scaled coordinates
         //const targetElement = document.elementFromPoint(scaledX, scaledY);
-        const test = document.createElement('div');
-        test.style.width = "10px";
-        test.style.height = "10px";
-        test.style.position = 'absolute';
-        test.style.left = scaledX + 'px';
-        test.style.top = scaledY + 'px';
-        test.style.backgroundColor = 'yellow';
-        this.rootDiv.appendChild(test);
+
 
         for (let val of this.roomDivMap.values()) {
             const left = this.getRelativeBoundingClientRect(val, this.rootDiv).left / this.scale;
@@ -227,11 +260,47 @@ export default class MapHandler {
                     width: width,
                     height: height
                 };
-               
+
             }
         }
         return null;
     }
 
+    addConnection(trans) {
+        let fromDiv = this.roomDivMap.get(trans.fromRoom);
+        let toDiv = this.roomDivMap.get(trans.toRoom);
+        let svg = document.createElement('svg');
+        svg.className = 'svg';
+        let path = document.createElement('path');
+        this.transPathMap.set(trans, path);
+        this.updateConnection(trans);
+        svg.appendChild(path);
+        document.body.appendChild(svg);
+
+      
+    }
+
+    updateConnection(trans) {
+
+        let path = this.transPathMap.get(trans);
+        let fromDiv = this.roomDivMap.get(trans.fromRoom);
+        let toDiv = this.roomDivMap.get(trans.toRoom);
+        path.className = 'path';
+        let x1 = fromDiv.getBoundingClientRect().left;
+        let y1 = fromDiv.getBoundingClientRect().top;
+        let x4 = toDiv.getBoundingClientRect().left;
+        let y4 = toDiv.getBoundingClientRect().top;
+        let x2 = x1 - 1;
+        let x3 = x4 + 1;
+        let data = `M${x1} ${y1} C ${x2} ${y1} ${x3} ${y4} ${x4} ${y4}`;
+        path.setAttribute('d', data);
+    }
+
+
+    updateAllConnections() {
+        for (let trans of this.transPathMap.keys()) {
+            this.updateConnection(trans);
+        }
+    }
 
 }
