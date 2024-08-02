@@ -52,6 +52,8 @@ export default class MapHandler {
         this.rootDiv.style.left = `${this.mouseX + relX * this.scale}px`;
         this.rootDiv.style.top = `${this.mouseY + relY * this.scale}px`;
 
+        this.updateAllConnections();
+
     };
 
 
@@ -267,15 +269,17 @@ export default class MapHandler {
     }
 
     addConnection(trans) {
+        const SVG_NS = 'http://www.w3.org/2000/svg';
         let fromDiv = this.roomDivMap.get(trans.fromRoom);
         let toDiv = this.roomDivMap.get(trans.toRoom);
-        let svg = document.createElement('svg');
-        svg.className = 'svg';
-        let path = document.createElement('path');
+        let svg = document.createElementNS(SVG_NS, 'svg');
+        svg.setAttribute("class", "svg")
+        let path = document.createElementNS(SVG_NS, 'path');
+        path.setAttribute("class", "path")
         this.transPathMap.set(trans, path);
         this.updateConnection(trans);
         svg.appendChild(path);
-        document.body.appendChild(svg);
+        this.rootDiv.appendChild(svg);
 
       
     }
@@ -285,15 +289,16 @@ export default class MapHandler {
         let path = this.transPathMap.get(trans);
         let fromDiv = this.roomDivMap.get(trans.fromRoom);
         let toDiv = this.roomDivMap.get(trans.toRoom);
-        path.className = 'path';
-        let x1 = fromDiv.getBoundingClientRect().left;
-        let y1 = fromDiv.getBoundingClientRect().top;
-        let x4 = toDiv.getBoundingClientRect().left;
-        let y4 = toDiv.getBoundingClientRect().top;
-        let x2 = x1 - 1;
-        let x3 = x4 + 1;
+
+        let x1 = this.getRelativeBoundingClientRect(fromDiv, this.rootDiv).left / this.scale;
+        let y1 = this.getRelativeBoundingClientRect(fromDiv, this.rootDiv).top / this.scale;
+        let x4 = this.getRelativeBoundingClientRect(toDiv, this.rootDiv).left / this.scale;
+        let y4 = this.getRelativeBoundingClientRect(toDiv, this.rootDiv).top / this.scale;
+        let x2 = x1;
+        let x3 = x4;
         let data = `M${x1} ${y1} C ${x2} ${y1} ${x3} ${y4} ${x4} ${y4}`;
-        path.setAttribute('d', data);
+        //path.setAttributeNS(null, 'stroke-width', 6 * this.scale)
+        path.setAttributeNS(null, 'd', data);
     }
 
 
