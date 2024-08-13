@@ -22,8 +22,18 @@ export default class App {
             console.log("Connected to server")
         })
         this.ws.addEventListener("message", ev => {
-            this.map.loadMap(ev.data)
-            console.log(ev.data)
+            const data = JSON.parse(ev.data);
+
+            if (data.command === "newTransition") {
+                console.log(data)
+
+            }
+            if (data.command === "allTransitions") {
+                console.log(data)
+                this.map.loadMap(data)
+            }
+         
+        
             //this.handleMessage(JSON.parse(ev.data))
         })
         this.ws.addEventListener("close", ev => {

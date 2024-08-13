@@ -10,6 +10,6 @@ namespace Randomizer_Map
     public class LocalSettingsClass
     {
         public int test = 0;
-        public List<RoomTransition> transition = new List<RoomTransition>();
+        public List<RoomTransitionData> transition = new List<RoomTransitionData>();
     }
 }

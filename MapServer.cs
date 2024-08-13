@@ -11,6 +11,9 @@ using UnityEngine.Networking.PlayerConnection;
 using WebSocketSharp.Server;
 using UnityEngine;
 using WebSocketSharp;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using static UnityEngine.UI.Selectable;
 
 
 namespace Randomizer_Map
@@ -20,6 +23,7 @@ namespace Randomizer_Map
         private HttpServer server;
         public int port = 7900;
         private WebSocketSessionManager sessions;
+        public static MapServer Instance;
 
         internal class WSHandler : WebSocketBehavior
         {
@@ -28,13 +32,13 @@ namespace Randomizer_Map
             protected override void OnOpen()
             {
                 
-                    Send("test");
+                    
             }
         }
 
         public MapServer()
         {
-
+            Instance = this;
         }
 
         public MapServer(ILogger logger)
@@ -55,28 +59,40 @@ namespace Randomizer_Map
             Randomizer_Map.MOD.Log("server start");
         }
 
-        public void Send(string msg)
+        public void SendNewTransition(RoomTransitionData transition)
+        {
+            Randomizer_Map.MOD.Log("SENDING TRANSITION");
+
+            SendCommand("newTransition", transition);
+        }
+
+        public void SendAllTransitions(List<RoomTransitionData> transitions)
+        {
+            SendCommand("allTransitions", transitions);
+        }
+
+        private void SendCommand(string command,System.Object data)
+        {
+            
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.Converters.Add(new RoomTransitionConverter());
+            settings.Converters.Add(new RoomConverter());
+            settings.Converters.Add(new GateConverter());
+            settings.Converters.Add(new WebCommandConverter());
+
+            WebCommandData commandData = new WebCommandData(command,data);
+          
+            string json = JsonConvert.SerializeObject(commandData, settings);
+            Send(json);
+        }
+        private void Send(string msg)
         {
             sessions.Broadcast(msg);
         }
 
-        public void Send(JObject msg)
-        {
-            sessions.Broadcast(msg.ToString());
-        }
+    
 
-        public void Send(string type, params object[] kvDataPairs)
-        {
-            var msg = new JObject();
-            msg["type"] = type;
-
-            for (int i = 0; i < kvDataPairs.Length; i += 2)
-            {
-                msg[(string)kvDataPairs[i]] = JToken.FromObject(kvDataPairs[i + 1]);
-            }
-
-            sessions.Broadcast(msg.ToString());
-        }
+  
 
         private void OnGet(object sender, HttpRequestEventArgs e)
         {

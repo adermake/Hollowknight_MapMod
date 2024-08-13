@@ -115,25 +115,22 @@ export default class MapHandler {
         MapHandler.Instance.mouseX = event.pageX;
         MapHandler.Instance.mouseY = event.pageY;
     }
+    loadNewTransition(data) {
+        const transition = JSON.parse(data);
+        this.createRoom(transition.fromRoom);
+        this.createRoom(transition.toRoom);
+        this.addConnection(transition);
+    }
 
     loadMap(data) {
         const parsedData = JSON.parse(data);
 
         for (let i = 0; i < parsedData.length; i++) {
             let transition = parsedData[i];
-
-            if (!this.roomExists(transition.toRoom)) {
-                this.createRooms(transition, this.x, this.y);
-                this.x += 20;
-                this.y += 20;
-            }
+            this.loadNewTransition(transition);
         }
 
-        for (let i = 0; i < parsedData.length; i++) {
-            let transition = parsedData[i];
-
-            this.addConnection(transition);
-        }
+        
     }
 
     roomExists(room) {
@@ -145,6 +142,25 @@ export default class MapHandler {
         return false;
     }
 
+    createRoom(room) {
+        if (!this.roomDivMap.has(room.roomName)) {
+            const newDiv = document.createElement('div');
+            newDiv.style.position = 'absolute';
+            newDiv.id = trans.toRoom;
+            newDiv.className = 'room';
+            newDiv.innerText = room.roomName;
+            newDiv.style.backgroundColor = 'lightblue';
+            newDiv.style.padding = '10px';
+            newDiv.style.left = room.mapPosX + '%';
+            newDiv.style.top = room.mapPosY + '%';
+            newDiv.style.width = room.width / 10 + '%';
+            newDiv.style.height = room.height / 10 + '%';
+            newDiv.style.pointerEvents = 'auto';
+            this.rootDiv.appendChild(newDiv);
+            this.roomDivMap.set(trans.toRoom, newDiv);
+        }
+    }
+    /*
     createRooms(trans, x, y) {
         if (!this.roomDivMap.has(trans.toRoom)) {
 
@@ -190,7 +206,7 @@ export default class MapHandler {
             this.roomDivMap.set(trans.fromRoom, newDiv);
         }
     }
-
+    */
     setupRoomDrag(eventDiv) {
 
         let offsetX, offsetY, isDragging = false;
@@ -270,8 +286,8 @@ export default class MapHandler {
 
     addConnection(trans) {
         const SVG_NS = 'http://www.w3.org/2000/svg';
-        let fromDiv = this.roomDivMap.get(trans.fromRoom);
-        let toDiv = this.roomDivMap.get(trans.toRoom);
+        let fromDiv = this.roomDivMap.get(trans.fromRoom.roomName);
+        let toDiv = this.roomDivMap.get(trans.toRoom.roomName);
         let svg = document.createElementNS(SVG_NS, 'svg');
         svg.setAttribute("class", "svg")
         let path = document.createElementNS(SVG_NS, 'path');
@@ -287,8 +303,8 @@ export default class MapHandler {
     updateConnection(trans) {
 
         let path = this.transPathMap.get(trans);
-        let fromDiv = this.roomDivMap.get(trans.fromRoom);
-        let toDiv = this.roomDivMap.get(trans.toRoom);
+        let fromDiv = this.roomDivMap.get(trans.fromRoom.roomName);
+        let toDiv = this.roomDivMap.get(trans.toRoom.roomName);
 
         let x1 = this.getRelativeBoundingClientRect(fromDiv, this.rootDiv).left / this.scale;
         let y1 = this.getRelativeBoundingClientRect(fromDiv, this.rootDiv).top / this.scale;
